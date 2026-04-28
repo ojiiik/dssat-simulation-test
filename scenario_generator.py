@@ -82,3 +82,13 @@ def validate_config(cfg: Config) -> None:
                             f"parameter `{name}`: bundle key `{key}` "
                             f"collides with top-level parameter"
                         )
+
+
+class FloatParam:
+    def __init__(self, name: str, min: float, max: float):
+        self.name = name
+        self.min = float(min)
+        self.max = float(max)
+
+    def map(self, u: float) -> dict[str, Any]:
+        return {self.name: self.min + (self.max - self.min) * u}
