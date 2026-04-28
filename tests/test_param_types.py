@@ -2,7 +2,13 @@ from datetime import date
 
 import pytest
 
-from scenario_generator import CategoricalParam, DateParam, FloatParam, IntParam
+from scenario_generator import (
+    BundleParam,
+    CategoricalParam,
+    DateParam,
+    FloatParam,
+    IntParam,
+)
 
 
 def test_float_at_min():
@@ -100,3 +106,36 @@ def test_categorical_uniform_buckets():
     for u in [0.0, 0.4, 0.7, 0.99]:
         seen.add(p.map(u)["cv"])
     assert seen == {"A", "B", "C"}
+
+
+BUNDLE_VALUES = [
+    {"name": "LowInput", "fertilizer": "N", "fertilizer_amount_n": 0},
+    {"name": "HighInput", "fertilizer": "D", "fertilizer_amount_n": 150},
+]
+
+
+def test_bundle_first_entry():
+    p = BundleParam(values=BUNDLE_VALUES)
+    out = p.map(0.0)
+    assert out["management_scenario"] == "LowInput"
+    assert out["fertilizer"] == "N"
+    assert out["fertilizer_amount_n"] == 0
+    assert "name" not in out
+
+
+def test_bundle_last_entry():
+    p = BundleParam(values=BUNDLE_VALUES)
+    out = p.map(1.0)
+    assert out["management_scenario"] == "HighInput"
+    assert out["fertilizer_amount_n"] == 150
+
+
+def test_bundle_clamped_at_one():
+    p = BundleParam(values=BUNDLE_VALUES)
+    assert p.map(1.0)["management_scenario"] == "HighInput"
+
+
+def test_bundle_produces_multiple_columns():
+    p = BundleParam(values=BUNDLE_VALUES)
+    out = p.map(0.0)
+    assert set(out.keys()) == {"management_scenario", "fertilizer", "fertilizer_amount_n"}

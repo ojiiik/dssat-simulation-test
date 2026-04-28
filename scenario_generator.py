@@ -137,3 +137,20 @@ class CategoricalParam:
         if idx >= n:
             idx = n - 1
         return {self.name: self.values[idx]}
+
+
+class BundleParam:
+    def __init__(self, values: list[dict]):
+        self.values = list(values)
+
+    def map(self, u: float) -> dict[str, Any]:
+        n = len(self.values)
+        idx = int(math.floor(u * n))
+        if idx >= n:
+            idx = n - 1
+        entry = self.values[idx]
+        out: dict[str, Any] = {"management_scenario": entry["name"]}
+        for k, v in entry.items():
+            if k != "name":
+                out[k] = v
+        return out
