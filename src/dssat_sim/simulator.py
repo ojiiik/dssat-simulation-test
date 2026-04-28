@@ -44,7 +44,7 @@ class DSSATSimulator:
         self.field = None
         self.simulation_dir = None
         
-    def load_weather_data(self, weather_data_dir: str = "./weather_data", 
+    def load_weather_data(self, weather_data_dir: str = "data/weather",
                          station_code: str = "IDGR", 
                          years: Optional[List[int]] = None) -> WeatherStation:
         """
@@ -100,7 +100,7 @@ class DSSATSimulator:
         return self.weather_station
     
     def load_soil_profile(self, soil_id: str = "IBSG910085", 
-                         soil_file_path: str = "soil_data/SOIL.SOL",
+                         soil_file_path: str = "data/soil/SOIL.SOL",
                          download_if_missing: bool = True) -> SoilProfile:
         """
         Load soil profile from DSSAT soil file.
@@ -420,7 +420,7 @@ def main():
     try:
         # Load weather data
         weather_station = simulator.load_weather_data(
-            weather_data_dir="./weather_data",
+            weather_data_dir="data/weather",
             station_code="IDGR",
             years=[19, 20, 21]  # 2019-2021
         )
@@ -428,7 +428,7 @@ def main():
         # Load soil profile
         soil_profile = simulator.load_soil_profile(
             soil_id="IBSG910085",
-            soil_file_path="soil_data/SOIL.SOL"
+            soil_file_path="data/soil/SOIL.SOL"
         )
         
         # Set rice cultivar
@@ -442,7 +442,7 @@ def main():
         
         # Run simulation
         results = simulator.run_simulation(
-            output_dir="./simulation_output",
+            output_dir="results/simulation_output",
             initial_conditions={
                 'crop_code': 'RI',  # Rice code
                 'initial_date': datetime(1980, 7, 3)

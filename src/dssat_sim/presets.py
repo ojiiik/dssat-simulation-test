@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Weather Configuration
 WEATHER_CONFIG = {
-    "data_dir": "./weather_data",
+    "data_dir": "data/weather",
     "station_code": "IDGR",
     "years": [19, 20, 21],  # 2019-2021
     "coordinates": {
@@ -25,7 +25,7 @@ WEATHER_CONFIG = {
 # Soil Configuration
 SOIL_CONFIG = {
     "soil_id": "IBSG910085",
-    "soil_file": "soil_data/SOIL.SOL",
+    "soil_file": "data/soil/SOIL.SOL",
     "download_url": "https://github.com/DSSAT/dssat-csm-data/blob/develop/Soil/SOIL.SOL?raw=true"
 }
 
@@ -86,7 +86,7 @@ SIMULATION_CONFIG = {
 
 # Output Configuration
 OUTPUT_CONFIG = {
-    "base_dir": "./simulation_results",
+    "base_dir": "results",
     "create_subdirs": True,
     "backup_inputs": True
 }

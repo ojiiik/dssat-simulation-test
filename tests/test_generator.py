@@ -362,7 +362,7 @@ def test_cli_force_overwrites(tmp_path):
 
 
 def test_example_config_generates_valid_csv(tmp_path):
-    src = PROJECT_ROOT / "scenario_config.example.yaml"
+    src = PROJECT_ROOT / "examples" / "scenario_config.yaml"
     out_path = tmp_path / "out.csv"
     result = subprocess.run(
         ["dssat-sim", "generate", str(src), "--output", str(out_path), "--force"],
