@@ -1,6 +1,9 @@
 from datetime import date
 
 import csv
+import subprocess
+import sys
+from pathlib import Path
 
 from scenario_generator import (
     BundleParam,
@@ -255,3 +258,41 @@ def test_missing_columns_render_as_empty(tmp_path):
         rows = list(csv.DictReader(f))
     assert rows[0]["cultivar_id"] == ""
     assert rows[0]["soil_id"] == ""
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_cli_generates_csv(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text(
+        "n_samples: 5\n"
+        "seed: 1\n"
+        "parameters:\n"
+        "  planting_date: {type: date, min: 2021-05-01, max: 2021-07-01}\n"
+        "  plant_population: {type: float, min: 7, max: 15}\n"
+    )
+    out_path = tmp_path / "out.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    assert out_path.exists()
+    with open(out_path) as f:
+        lines = f.readlines()
+    assert len(lines) == 6
+
+
+def test_cli_invalid_config_exits_nonzero(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text("n_samples: 0\nseed: 1\nparameters: {}\n")
+    out_path = tmp_path / "out.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode != 0
+    assert "n_samples" in result.stderr or "n_samples" in result.stdout

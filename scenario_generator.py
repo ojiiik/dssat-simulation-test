@@ -260,3 +260,53 @@ def write_csv(cfg: Config, output_path: str | Path) -> None:
         for i, row in enumerate(rows, start=1):
             row["scenario_id"] = f"SCENARIO_{i:0{pad_width}d}"
             writer.writerow({col: _stringify(row.get(col, "")) for col in CSV_COLUMNS})
+
+
+import argparse
+import sys
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="scenario_generator",
+        description="LHS-based scenario CSV generator for DSSAT simulations.",
+    )
+    p.add_argument("config", help="Path to YAML config")
+    p.add_argument("--output", help="Override `output` from config")
+    p.add_argument("--force", action="store_true", help="Overwrite existing output file")
+    p.add_argument("--validate", action="store_true", help="Validate config and exit")
+    p.add_argument("--preview", action="store_true",
+                   help="Print first 5 rows + total count, do not write")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+    try:
+        cfg = load_config(args.config)
+        validate_config(cfg)
+    except ConfigError as e:
+        print(f"Config error: {e}", file=sys.stderr)
+        return 2
+    if args.validate:
+        print("Config OK.")
+        return 0
+
+    output = Path(args.output or cfg.output)
+    if not args.preview:
+        if output.exists() and not args.force:
+            print(f"Output {output} exists. Pass --force to overwrite.", file=sys.stderr)
+            return 3
+        write_csv(cfg, output)
+        print(f"Wrote {cfg.n_samples} scenarios to {output}")
+        return 0
+
+    rows = resolve_rows(cfg)
+    print(f"Total: {len(rows)} scenarios. First 5:")
+    for i, row in enumerate(rows[:5], start=1):
+        print(f"  {i}: {row}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
