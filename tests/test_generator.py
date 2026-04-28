@@ -261,7 +261,6 @@ def test_missing_columns_render_as_empty(tmp_path):
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SCENARIOS_MODULE = PROJECT_ROOT / "src" / "dssat_sim" / "scenarios.py"
 
 
 def test_cli_generates_csv(tmp_path):
@@ -275,9 +274,8 @@ def test_cli_generates_csv(tmp_path):
     )
     out_path = tmp_path / "out.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path)],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
     assert out_path.exists()
@@ -291,9 +289,8 @@ def test_cli_invalid_config_exits_nonzero(tmp_path):
     cfg_path.write_text("n_samples: 0\nseed: 1\nparameters: {}\n")
     out_path = tmp_path / "out.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path)],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True,
     )
     assert result.returncode != 0
     assert "n_samples" in result.stderr or "n_samples" in result.stdout
@@ -307,9 +304,8 @@ def test_cli_validate_only(tmp_path):
     )
     out_path = tmp_path / "should_not_exist.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path), "--validate"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path), "--validate"],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0
     assert not out_path.exists()
@@ -324,9 +320,8 @@ def test_cli_preview(tmp_path):
     )
     out_path = tmp_path / "should_not_exist.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path), "--preview"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path), "--preview"],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0
     assert not out_path.exists()
@@ -342,9 +337,8 @@ def test_cli_refuses_overwrite_without_force(tmp_path):
     out_path = tmp_path / "existing.csv"
     out_path.write_text("DO_NOT_OVERWRITE")
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path)],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True,
     )
     assert result.returncode != 0
     assert out_path.read_text() == "DO_NOT_OVERWRITE"
@@ -359,9 +353,8 @@ def test_cli_force_overwrites(tmp_path):
     out_path = tmp_path / "existing.csv"
     out_path.write_text("OLD_CONTENT")
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path), "--force"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path), "--force"],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0
     assert "OLD_CONTENT" not in out_path.read_text()
@@ -372,9 +365,8 @@ def test_example_config_generates_valid_csv(tmp_path):
     src = PROJECT_ROOT / "scenario_config.example.yaml"
     out_path = tmp_path / "out.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(src), "--output", str(out_path), "--force"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(src), "--output", str(out_path), "--force"],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
     with open(out_path) as f:
@@ -411,9 +403,8 @@ fixed:
 """)
     out_path = tmp_path / "out.csv"
     result = subprocess.run(
-        [sys.executable, str(SCENARIOS_MODULE),
-         str(cfg_path), "--output", str(out_path), "--force"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        ["dssat-sim", "generate", str(cfg_path), "--output", str(out_path), "--force"],
+        capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
     with open(out_path) as f:

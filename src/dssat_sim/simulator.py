@@ -345,6 +345,72 @@ class DSSATSimulator:
             raise
 
 
+def run_preset(crop_type: str):
+    """Run a complete DSSAT simulation using a named preset from `dssat_sim.presets`.
+
+    Args:
+        crop_type: One of the keys in CROP_CONFIG (e.g., "rice", "sorghum", "maize").
+
+    Returns:
+        Whatever `DSSATSimulator.run_simulation()` returns.
+
+    Raises:
+        ValueError: If crop_type is not in CROP_CONFIG.
+    """
+    from dssat_sim.presets import (
+        CROP_CONFIG,
+        FIELD_CONFIG,
+        OUTPUT_CONFIG,
+        SIMULATION_CONFIG,
+        SOIL_CONFIG,
+        WEATHER_CONFIG,
+    )
+
+    if crop_type not in CROP_CONFIG:
+        raise ValueError(
+            f"Unknown crop preset: {crop_type!r}. Available: {list(CROP_CONFIG)}"
+        )
+
+    crop_cfg = CROP_CONFIG[crop_type]
+    sim_cfg = SIMULATION_CONFIG.get(crop_type, SIMULATION_CONFIG["rice"])
+
+    project_name = (
+        f"{crop_type}_simulation_"
+        f"{FIELD_CONFIG['location_name'].lower().replace(' ', '_').replace(',', '')}"
+    )
+    simulator = DSSATSimulator(project_name)
+
+    print(f"Starting {crop_cfg['crop_type']} simulation for {FIELD_CONFIG['location_name']}")
+    print("=" * 60)
+
+    simulator.load_weather_data(
+        weather_data_dir=WEATHER_CONFIG["data_dir"],
+        station_code=WEATHER_CONFIG["station_code"],
+        years=WEATHER_CONFIG["years"],
+    )
+    simulator.load_soil_profile(
+        soil_id=SOIL_CONFIG["soil_id"],
+        soil_file_path=SOIL_CONFIG["soil_file"],
+        download_if_missing=True,
+    )
+    simulator.set_cultivar(
+        crop_type=crop_cfg["crop_type"],
+        cultivar_id=crop_cfg["cultivar_id"],
+    )
+    simulator.create_field(FIELD_CONFIG["field_id"])
+
+    output_dir = os.path.join(OUTPUT_CONFIG["base_dir"], crop_type)
+    if OUTPUT_CONFIG["create_subdirs"]:
+        os.makedirs(output_dir, exist_ok=True)
+
+    return simulator.run_simulation(
+        output_dir=output_dir,
+        initial_conditions=sim_cfg["initial_conditions"],
+        planting=sim_cfg["planting"],
+        simulation_controls=sim_cfg["simulation_controls"],
+    )
+
+
 def main():
     """Example usage of the DSSAT Simulator."""
     
