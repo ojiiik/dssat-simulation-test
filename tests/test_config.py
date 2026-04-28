@@ -1,5 +1,8 @@
 from pathlib import Path
-from scenario_generator import load_config
+
+import pytest
+
+from scenario_generator import Config, ConfigError, load_config, validate_config
 
 
 def test_load_minimal_config(tmp_path: Path):
@@ -41,3 +44,58 @@ def test_load_full_config(tmp_path: Path):
     assert cfg.fixed == {"soil_id": "ABC"}
     assert cfg.derivations["simulation_start_offset_days"] == 30
     assert cfg.lookups["soil_id"]["ABC"] == "Clay"
+
+
+def _cfg(**kwargs) -> Config:
+    base = dict(n_samples=10, seed=42, parameters={"x": {"type": "float", "min": 0, "max": 1}})
+    base.update(kwargs)
+    return Config(**base)
+
+
+def test_rejects_n_samples_zero():
+    with pytest.raises(ConfigError, match="n_samples"):
+        validate_config(_cfg(n_samples=0))
+
+
+def test_rejects_no_parameters():
+    with pytest.raises(ConfigError, match="parameters"):
+        validate_config(_cfg(parameters={}))
+
+
+def test_rejects_unknown_type():
+    with pytest.raises(ConfigError, match="unknown type"):
+        validate_config(_cfg(parameters={"x": {"type": "weird"}}))
+
+
+def test_rejects_min_greater_than_max():
+    with pytest.raises(ConfigError, match="min .* max"):
+        validate_config(_cfg(parameters={"x": {"type": "float", "min": 10, "max": 1}}))
+
+
+def test_rejects_empty_categorical():
+    with pytest.raises(ConfigError, match="values"):
+        validate_config(_cfg(parameters={"x": {"type": "categorical", "values": []}}))
+
+
+def test_rejects_bundle_without_name():
+    with pytest.raises(ConfigError, match="name"):
+        validate_config(_cfg(parameters={
+            "m": {"type": "bundle", "values": [{"fertilizer": "N"}]}
+        }))
+
+
+def test_rejects_bundle_key_collision():
+    with pytest.raises(ConfigError, match="collide"):
+        validate_config(_cfg(parameters={
+            "x": {"type": "float", "min": 0, "max": 1},
+            "m": {"type": "bundle", "values": [{"name": "A", "x": 5}]},
+        }))
+
+
+def test_accepts_valid_bundle():
+    validate_config(_cfg(parameters={
+        "m": {"type": "bundle", "values": [
+            {"name": "Low", "fertilizer_amount_n": 0},
+            {"name": "High", "fertilizer_amount_n": 150},
+        ]},
+    }))

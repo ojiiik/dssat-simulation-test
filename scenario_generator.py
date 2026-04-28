@@ -34,3 +34,51 @@ def load_config(path: str | Path) -> Config:
         lookups=raw.get("lookups") or {},
         output=raw.get("output", "scenarios.csv"),
     )
+
+
+VALID_TYPES = {"float", "int", "date", "categorical", "bundle"}
+
+
+class ConfigError(ValueError):
+    """Raised when a YAML config fails validation."""
+
+
+def validate_config(cfg: Config) -> None:
+    if cfg.n_samples < 1:
+        raise ConfigError(f"n_samples must be >= 1, got {cfg.n_samples}")
+    if not cfg.parameters:
+        raise ConfigError("at least one entry under `parameters` is required for LHS")
+
+    top_level_names = set(cfg.parameters.keys())
+
+    for name, spec in cfg.parameters.items():
+        ptype = spec.get("type")
+        if ptype not in VALID_TYPES:
+            raise ConfigError(f"parameter `{name}`: unknown type {ptype!r}")
+
+        if ptype in {"float", "int", "date"}:
+            if "min" not in spec or "max" not in spec:
+                raise ConfigError(f"parameter `{name}`: type {ptype} requires min and max")
+            if spec["min"] > spec["max"]:
+                raise ConfigError(f"parameter `{name}`: min ({spec['min']}) > max ({spec['max']})")
+
+        if ptype == "categorical":
+            values = spec.get("values") or []
+            if not values:
+                raise ConfigError(f"parameter `{name}`: categorical needs non-empty `values`")
+
+        if ptype == "bundle":
+            values = spec.get("values") or []
+            if not values:
+                raise ConfigError(f"parameter `{name}`: bundle needs non-empty `values`")
+            for i, entry in enumerate(values):
+                if "name" not in entry:
+                    raise ConfigError(f"parameter `{name}`: bundle entry {i} missing `name`")
+                for key in entry:
+                    if key == "name":
+                        continue
+                    if key in top_level_names and key != name:
+                        raise ConfigError(
+                            f"parameter `{name}`: bundle key `{key}` "
+                            f"collides with top-level parameter"
+                        )
