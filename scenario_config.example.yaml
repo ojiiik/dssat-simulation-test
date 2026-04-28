@@ -1,0 +1,51 @@
+# Scenario generator example config.
+# Two modes shown side-by-side: pick one and delete the other.
+
+# --- Mode A: Sensitivity analysis ---
+# All parameters sampled independently. Use this when you want to attribute
+# yield variance to individual inputs (Sobol/Morris-style downstream).
+
+n_samples: 200
+seed: 42
+output: scenarios_sensitivity.csv
+
+parameters:
+  planting_date:       {type: date,        min: 2021-04-15, max: 2021-07-31}
+  plant_population:    {type: float,       min: 7,          max: 20}
+  row_spacing:         {type: int,         min: 20,         max: 75}
+  cultivar_id:         {type: categorical, values: [IB0003, IB0002]}
+  fertilizer_amount_n: {type: float,       min: 0,          max: 200}
+  fertilizer_amount_p: {type: float,       min: 0,          max: 100}
+  fertilizer_amount_k: {type: float,       min: 0,          max: 100}
+  irrigation:          {type: categorical, values: [N, R, A]}
+  residue_management:  {type: categorical, values: [N, R]}
+  fertilizer:          {type: categorical, values: [N, D]}
+
+fixed:
+  soil_id: IBSG910010
+
+derivations:
+  simulation_start_offset_days: 15
+
+lookups:
+  cultivar_id: {IB0003: "IR 36", IB0002: "CP170"}
+  soil_id:     {IBSG910010: "Clay_loam"}
+
+# --- Mode B: Realistic / training data ---
+# To switch: replace the `parameters` block above with the one below. The
+# `management` bundle keeps fertilizer/irrigation/residue agronomically
+# coherent — N=0 won't pair with HighInput, and so on.
+#
+# parameters:
+#   planting_date:    {type: date, min: 2021-04-15, max: 2021-07-31}
+#   plant_population: {type: float, min: 7, max: 20}
+#   cultivar_id:      {type: categorical, values: [IB0003, IB0002]}
+#   management:
+#     type: bundle
+#     values:
+#       - {name: LowInput,  fertilizer: N, irrigation: N, residue_management: N,
+#          fertilizer_amount_n: 0,   fertilizer_amount_p: 0,  fertilizer_amount_k: 0}
+#       - {name: WithFert,  fertilizer: D, irrigation: N, residue_management: R,
+#          fertilizer_amount_n: 100, fertilizer_amount_p: 50, fertilizer_amount_k: 50}
+#       - {name: HighInput, fertilizer: D, irrigation: R, residue_management: R,
+#          fertilizer_amount_n: 150, fertilizer_amount_p: 75, fertilizer_amount_k: 75}

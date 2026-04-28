@@ -365,3 +365,63 @@ def test_cli_force_overwrites(tmp_path):
     assert result.returncode == 0
     assert "OLD_CONTENT" not in out_path.read_text()
     assert "scenario_id" in out_path.read_text()
+
+
+def test_example_config_generates_valid_csv(tmp_path):
+    src = PROJECT_ROOT / "scenario_config.example.yaml"
+    out_path = tmp_path / "out.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(src), "--output", str(out_path), "--force"],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    with open(out_path) as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 200
+    assert len({r["scenario_id"] for r in rows}) == 200
+    assert all(r["soil_id"] == "IBSG910010" for r in rows)
+    assert all(r["cultivar_name"] in {"IR 36", "CP170"} for r in rows)
+    for r in rows:
+        assert r["simulation_start_date"] < r["planting_date"]
+    for r in rows:
+        n_amt = float(r["fertilizer_amount_n"])
+        if n_amt == 0:
+            assert r["fertilizer_date"] == ""
+        else:
+            assert r["fertilizer_date"] == r["planting_date"]
+
+
+def test_example_bundle_mode_via_yaml(tmp_path):
+    """Exercise the bundle code path with an inline mode-B config."""
+    cfg_path = tmp_path / "bundle.yaml"
+    cfg_path.write_text("""
+n_samples: 50
+seed: 7
+parameters:
+  planting_date: {type: date, min: 2021-05-01, max: 2021-07-01}
+  management:
+    type: bundle
+    values:
+      - {name: LowInput,  fertilizer: N, fertilizer_amount_n: 0}
+      - {name: HighInput, fertilizer: D, fertilizer_amount_n: 150}
+fixed:
+  soil_id: IBSG910010
+""")
+    out_path = tmp_path / "out.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path), "--force"],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    with open(out_path) as f:
+        rows = list(csv.DictReader(f))
+    assert all(r["management_scenario"] in {"LowInput", "HighInput"} for r in rows)
+    for r in rows:
+        if r["management_scenario"] == "LowInput":
+            assert r["fertilizer"] == "N"
+            assert float(r["fertilizer_amount_n"]) == 0
+        else:
+            assert r["fertilizer"] == "D"
+            assert float(r["fertilizer_amount_n"]) == 150
