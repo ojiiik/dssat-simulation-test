@@ -84,6 +84,9 @@ def validate_config(cfg: Config) -> None:
                         )
 
 
+import math
+
+
 class FloatParam:
     def __init__(self, name: str, min: float, max: float):
         self.name = name
@@ -92,3 +95,17 @@ class FloatParam:
 
     def map(self, u: float) -> dict[str, Any]:
         return {self.name: self.min + (self.max - self.min) * u}
+
+
+class IntParam:
+    def __init__(self, name: str, min: int, max: int):
+        self.name = name
+        self.min = int(min)
+        self.max = int(max)
+
+    def map(self, u: float) -> dict[str, Any]:
+        n_buckets = self.max - self.min + 1
+        idx = int(math.floor(u * n_buckets))
+        if idx >= n_buckets:
+            idx = n_buckets - 1
+        return {self.name: self.min + idx}
