@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from scenario_generator import DateParam, FloatParam, IntParam
+from scenario_generator import CategoricalParam, DateParam, FloatParam, IntParam
 
 
 def test_float_at_min():
@@ -72,3 +72,31 @@ def test_date_returns_date_not_datetime():
     p = DateParam("pdate", min=date(2021, 4, 15), max=date(2021, 7, 31))
     result = p.map(0.5)["pdate"]
     assert type(result) is date
+
+
+def test_categorical_first():
+    p = CategoricalParam("cv", values=["IB0003", "IB0002", "IB0026"])
+    assert p.map(0.0) == {"cv": "IB0003"}
+
+
+def test_categorical_last():
+    p = CategoricalParam("cv", values=["IB0003", "IB0002", "IB0026"])
+    assert p.map(1.0) == {"cv": "IB0026"}
+
+
+def test_categorical_middle():
+    p = CategoricalParam("cv", values=["A", "B", "C"])
+    assert p.map(0.5) == {"cv": "B"}
+
+
+def test_categorical_clamped_at_one():
+    p = CategoricalParam("flag", values=["N", "R"])
+    assert p.map(1.0) == {"flag": "R"}
+
+
+def test_categorical_uniform_buckets():
+    p = CategoricalParam("cv", values=["A", "B", "C"])
+    seen = set()
+    for u in [0.0, 0.4, 0.7, 0.99]:
+        seen.add(p.map(u)["cv"])
+    assert seen == {"A", "B", "C"}

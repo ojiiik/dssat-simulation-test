@@ -124,3 +124,16 @@ class DateParam:
         delta_days = (self.max - self.min).days
         offset = round(delta_days * u)
         return {self.name: self.min + timedelta(days=offset)}
+
+
+class CategoricalParam:
+    def __init__(self, name: str, values: list):
+        self.name = name
+        self.values = list(values)
+
+    def map(self, u: float) -> dict[str, Any]:
+        n = len(self.values)
+        idx = int(math.floor(u * n))
+        if idx >= n:
+            idx = n - 1
+        return {self.name: self.values[idx]}
