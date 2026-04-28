@@ -75,10 +75,13 @@ def test_lhs_covers_range():
     assert max(xs) > 0.95
 
 
+_PDATE = {"type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)}
+
+
 def test_fixed_applied_to_every_row():
     cfg = Config(
         n_samples=5, seed=0,
-        parameters={"x": {"type": "float", "min": 0, "max": 1}},
+        parameters={"x": {"type": "float", "min": 0, "max": 1}, "planting_date": _PDATE},
         fixed={"soil_id": "ABC", "row_spacing": 75},
     )
     rows = resolve_rows(cfg)
@@ -90,7 +93,10 @@ def test_fixed_applied_to_every_row():
 def test_lookup_populates_display_name():
     cfg = Config(
         n_samples=3, seed=0,
-        parameters={"cultivar_id": {"type": "categorical", "values": ["IB0003"]}},
+        parameters={
+            "cultivar_id": {"type": "categorical", "values": ["IB0003"]},
+            "planting_date": _PDATE,
+        },
         lookups={"cultivar_id": {"IB0003": "IR 36"}},
     )
     rows = resolve_rows(cfg)
@@ -102,9 +108,70 @@ def test_lookup_populates_display_name():
 def test_missing_lookup_leaves_name_empty():
     cfg = Config(
         n_samples=1, seed=0,
-        parameters={"cultivar_id": {"type": "categorical", "values": ["UNKNOWN"]}},
+        parameters={
+            "cultivar_id": {"type": "categorical", "values": ["UNKNOWN"]},
+            "planting_date": _PDATE,
+        },
         lookups={"cultivar_id": {"IB0003": "IR 36"}},
     )
     rows = resolve_rows(cfg)
     assert rows[0]["cultivar_id"] == "UNKNOWN"
     assert rows[0].get("cultivar_name", "") == ""
+
+
+def test_simulation_start_date_default_offset():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)
+        }},
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["simulation_start_date"] == date(2021, 4, 16)
+
+
+def test_simulation_start_date_custom_offset():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)
+        }},
+        derivations={"simulation_start_offset_days": 30},
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["simulation_start_date"] == date(2021, 4, 1)
+
+
+def test_fertilizer_date_when_n_positive():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={
+            "planting_date": {"type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)},
+            "fertilizer_amount_n": {"type": "float", "min": 100, "max": 100},
+        },
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["fertilizer_date"] == date(2021, 5, 1)
+
+
+def test_fertilizer_date_empty_when_n_zero():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={
+            "planting_date": {"type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)},
+            "fertilizer_amount_n": {"type": "float", "min": 0, "max": 0},
+        },
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["fertilizer_date"] == ""
+
+
+def test_fertilizer_date_defaults_to_planting_when_n_absent():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 1)
+        }},
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["fertilizer_date"] == date(2021, 5, 1)

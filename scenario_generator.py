@@ -204,11 +204,28 @@ def _apply_lookups(row: dict[str, Any], lookups: dict[str, dict[str, str]]) -> N
         row[target_key] = mapping.get(row[source_key], "")
 
 
+def _apply_derivations(row: dict[str, Any], derivations: dict[str, Any]) -> None:
+    if "planting_date" not in row:
+        raise ConfigError(
+            "derivations require `planting_date` (sample it, fix it, or include it in a bundle)"
+        )
+    offset = int(derivations.get("simulation_start_offset_days", 15))
+    row["simulation_start_date"] = row["planting_date"] - timedelta(days=offset)
+    n_amt = row.get("fertilizer_amount_n")
+    if n_amt is None:
+        row["fertilizer_date"] = row["planting_date"]
+    elif n_amt > 0:
+        row["fertilizer_date"] = row["planting_date"]
+    else:
+        row["fertilizer_date"] = ""
+
+
 def resolve_rows(cfg: Config) -> list[dict[str, Any]]:
-    """Sample, apply fixed values, apply lookups. Derivations come in the next task."""
+    """Sample, apply fixed values, apply lookups, apply derivations."""
     rows = sample_rows(cfg)
     for row in rows:
         for k, v in cfg.fixed.items():
             row.setdefault(k, v)
         _apply_lookups(row, cfg.lookups)
+        _apply_derivations(row, cfg.derivations)
     return rows
