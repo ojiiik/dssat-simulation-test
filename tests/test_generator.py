@@ -296,3 +296,72 @@ def test_cli_invalid_config_exits_nonzero(tmp_path):
     )
     assert result.returncode != 0
     assert "n_samples" in result.stderr or "n_samples" in result.stdout
+
+
+def test_cli_validate_only(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text(
+        "n_samples: 5\nseed: 1\n"
+        "parameters:\n  x: {type: float, min: 0, max: 1}\n"
+    )
+    out_path = tmp_path / "should_not_exist.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path), "--validate"],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0
+    assert not out_path.exists()
+    assert "OK" in result.stdout
+
+
+def test_cli_preview(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text(
+        "n_samples: 12\nseed: 1\n"
+        "parameters:\n  planting_date: {type: date, min: 2021-05-01, max: 2021-07-01}\n"
+    )
+    out_path = tmp_path / "should_not_exist.csv"
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path), "--preview"],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0
+    assert not out_path.exists()
+    assert "Total: 12" in result.stdout
+
+
+def test_cli_refuses_overwrite_without_force(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text(
+        "n_samples: 3\nseed: 1\n"
+        "parameters:\n  planting_date: {type: date, min: 2021-05-01, max: 2021-07-01}\n"
+    )
+    out_path = tmp_path / "existing.csv"
+    out_path.write_text("DO_NOT_OVERWRITE")
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path)],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode != 0
+    assert out_path.read_text() == "DO_NOT_OVERWRITE"
+
+
+def test_cli_force_overwrites(tmp_path):
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text(
+        "n_samples: 3\nseed: 1\n"
+        "parameters:\n  planting_date: {type: date, min: 2021-05-01, max: 2021-07-01}\n"
+    )
+    out_path = tmp_path / "existing.csv"
+    out_path.write_text("OLD_CONTENT")
+    result = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scenario_generator.py"),
+         str(cfg_path), "--output", str(out_path), "--force"],
+        capture_output=True, text=True, cwd=PROJECT_ROOT,
+    )
+    assert result.returncode == 0
+    assert "OLD_CONTENT" not in out_path.read_text()
+    assert "scenario_id" in out_path.read_text()
