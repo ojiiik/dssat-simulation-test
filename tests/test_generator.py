@@ -8,6 +8,7 @@ from scenario_generator import (
     FloatParam,
     IntParam,
     build_params,
+    resolve_rows,
     sample_rows,
 )
 
@@ -72,3 +73,38 @@ def test_lhs_covers_range():
     xs = [r["x"] for r in rows]
     assert min(xs) < 0.05
     assert max(xs) > 0.95
+
+
+def test_fixed_applied_to_every_row():
+    cfg = Config(
+        n_samples=5, seed=0,
+        parameters={"x": {"type": "float", "min": 0, "max": 1}},
+        fixed={"soil_id": "ABC", "row_spacing": 75},
+    )
+    rows = resolve_rows(cfg)
+    for r in rows:
+        assert r["soil_id"] == "ABC"
+        assert r["row_spacing"] == 75
+
+
+def test_lookup_populates_display_name():
+    cfg = Config(
+        n_samples=3, seed=0,
+        parameters={"cultivar_id": {"type": "categorical", "values": ["IB0003"]}},
+        lookups={"cultivar_id": {"IB0003": "IR 36"}},
+    )
+    rows = resolve_rows(cfg)
+    for r in rows:
+        assert r["cultivar_id"] == "IB0003"
+        assert r["cultivar_name"] == "IR 36"
+
+
+def test_missing_lookup_leaves_name_empty():
+    cfg = Config(
+        n_samples=1, seed=0,
+        parameters={"cultivar_id": {"type": "categorical", "values": ["UNKNOWN"]}},
+        lookups={"cultivar_id": {"IB0003": "IR 36"}},
+    )
+    rows = resolve_rows(cfg)
+    assert rows[0]["cultivar_id"] == "UNKNOWN"
+    assert rows[0].get("cultivar_name", "") == ""

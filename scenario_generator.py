@@ -191,3 +191,24 @@ def sample_rows(cfg: Config) -> list[dict[str, Any]]:
             row.update(p.map(float(unit[i, j])))
         rows.append(row)
     return rows
+
+
+LOOKUP_SUFFIX = "_name"
+
+
+def _apply_lookups(row: dict[str, Any], lookups: dict[str, dict[str, str]]) -> None:
+    for source_key, mapping in lookups.items():
+        if source_key not in row:
+            continue
+        target_key = source_key.removesuffix("_id") + LOOKUP_SUFFIX
+        row[target_key] = mapping.get(row[source_key], "")
+
+
+def resolve_rows(cfg: Config) -> list[dict[str, Any]]:
+    """Sample, apply fixed values, apply lookups. Derivations come in the next task."""
+    rows = sample_rows(cfg)
+    for row in rows:
+        for k, v in cfg.fixed.items():
+            row.setdefault(k, v)
+        _apply_lookups(row, cfg.lookups)
+    return rows
