@@ -154,3 +154,40 @@ class BundleParam:
             if k != "name":
                 out[k] = v
         return out
+
+
+from scipy.stats import qmc
+
+
+def build_params(cfg: Config) -> list:
+    """Construct parameter objects in declaration order."""
+    out = []
+    for name, spec in cfg.parameters.items():
+        ptype = spec["type"]
+        if ptype == "float":
+            out.append(FloatParam(name, spec["min"], spec["max"]))
+        elif ptype == "int":
+            out.append(IntParam(name, spec["min"], spec["max"]))
+        elif ptype == "date":
+            out.append(DateParam(name, spec["min"], spec["max"]))
+        elif ptype == "categorical":
+            out.append(CategoricalParam(name, spec["values"]))
+        elif ptype == "bundle":
+            out.append(BundleParam(spec["values"]))
+        else:
+            raise ConfigError(f"unknown type {ptype!r} for parameter {name!r}")
+    return out
+
+
+def sample_rows(cfg: Config) -> list[dict[str, Any]]:
+    """Run LHS and produce one dict per scenario (only sampled columns; no fixed/derived yet)."""
+    params = build_params(cfg)
+    sampler = qmc.LatinHypercube(d=len(params), seed=cfg.seed)
+    unit = sampler.random(n=cfg.n_samples)
+    rows: list[dict[str, Any]] = []
+    for i in range(cfg.n_samples):
+        row: dict[str, Any] = {}
+        for j, p in enumerate(params):
+            row.update(p.map(float(unit[i, j])))
+        rows.append(row)
+    return rows
