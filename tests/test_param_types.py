@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from scenario_generator import (
+from dssat_sim.scenarios import (
     BundleParam,
     CategoricalParam,
     DateParam,
