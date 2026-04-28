@@ -1,15 +1,19 @@
 from datetime import date
 
+import csv
+
 from scenario_generator import (
     BundleParam,
     CategoricalParam,
     Config,
+    CSV_COLUMNS,
     DateParam,
     FloatParam,
     IntParam,
     build_params,
     resolve_rows,
     sample_rows,
+    write_csv,
 )
 
 
@@ -175,3 +179,79 @@ def test_fertilizer_date_defaults_to_planting_when_n_absent():
     )
     rows = resolve_rows(cfg)
     assert rows[0]["fertilizer_date"] == date(2021, 5, 1)
+
+
+def test_csv_columns_match_existing_format():
+    expected = [
+        "scenario_id", "cultivar_id", "cultivar_name", "soil_id", "soil_name",
+        "management_scenario", "planting_date", "plant_population", "fertilizer",
+        "irrigation", "residue_management", "row_spacing",
+        "fertilizer_amount_n", "fertilizer_amount_p", "fertilizer_amount_k",
+        "simulation_start_date", "fertilizer_date",
+    ]
+    assert CSV_COLUMNS == expected
+    assert len(CSV_COLUMNS) == 17
+
+
+def test_write_csv_produces_correct_shape(tmp_path):
+    cfg = Config(
+        n_samples=10, seed=42,
+        parameters={
+            "planting_date": {"type": "date", "min": date(2021, 5, 1), "max": date(2021, 7, 1)},
+            "plant_population": {"type": "float", "min": 7, "max": 15},
+        },
+        fixed={"soil_id": "ABC"},
+    )
+    out_path = tmp_path / "out.csv"
+    write_csv(cfg, out_path)
+
+    with open(out_path) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    assert len(rows) == 10
+    assert reader.fieldnames == CSV_COLUMNS
+
+
+def test_scenario_id_zero_padded(tmp_path):
+    cfg = Config(
+        n_samples=15, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 31)
+        }},
+    )
+    out_path = tmp_path / "out.csv"
+    write_csv(cfg, out_path)
+    with open(out_path) as f:
+        ids = [r["scenario_id"] for r in csv.DictReader(f)]
+    assert ids[0] == "SCENARIO_01"
+    assert ids[-1] == "SCENARIO_15"
+
+
+def test_scenario_id_padding_for_thousands(tmp_path):
+    cfg = Config(
+        n_samples=1000, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 31)
+        }},
+    )
+    out_path = tmp_path / "out.csv"
+    write_csv(cfg, out_path)
+    with open(out_path) as f:
+        ids = [r["scenario_id"] for r in csv.DictReader(f)]
+    assert ids[0] == "SCENARIO_0001"
+    assert ids[-1] == "SCENARIO_1000"
+
+
+def test_missing_columns_render_as_empty(tmp_path):
+    cfg = Config(
+        n_samples=2, seed=0,
+        parameters={"planting_date": {
+            "type": "date", "min": date(2021, 5, 1), "max": date(2021, 5, 31)
+        }},
+    )
+    out_path = tmp_path / "out.csv"
+    write_csv(cfg, out_path)
+    with open(out_path) as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["cultivar_id"] == ""
+    assert rows[0]["soil_id"] == ""

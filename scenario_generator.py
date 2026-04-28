@@ -229,3 +229,34 @@ def resolve_rows(cfg: Config) -> list[dict[str, Any]]:
         _apply_lookups(row, cfg.lookups)
         _apply_derivations(row, cfg.derivations)
     return rows
+
+
+import csv as _csv
+
+
+CSV_COLUMNS = [
+    "scenario_id", "cultivar_id", "cultivar_name", "soil_id", "soil_name",
+    "management_scenario", "planting_date", "plant_population", "fertilizer",
+    "irrigation", "residue_management", "row_spacing",
+    "fertilizer_amount_n", "fertilizer_amount_p", "fertilizer_amount_k",
+    "simulation_start_date", "fertilizer_date",
+]
+
+
+def _stringify(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def write_csv(cfg: Config, output_path: str | Path) -> None:
+    rows = resolve_rows(cfg)
+    pad_width = max(2, len(str(cfg.n_samples)))
+    with open(output_path, "w", newline="") as f:
+        writer = _csv.DictWriter(f, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        for i, row in enumerate(rows, start=1):
+            row["scenario_id"] = f"SCENARIO_{i:0{pad_width}d}"
+            writer.writerow({col: _stringify(row.get(col, "")) for col in CSV_COLUMNS})
