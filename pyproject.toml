@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dssat-sim"
+version = "0.1.0"
+description = "DSSAT crop simulation toolkit with NASA POWER weather + LHS scenario generation"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Dayatani" }]
+dependencies = [
+    "DSSATTools==3.0.0.post1",
+    "pandas>=2.0",
+    "python-dotenv>=1.0",
+    "PyYAML>=6.0",
+    "requests>=2.30",
+    "scipy>=1.14",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=7.0"]
+
+[project.scripts]
+dssat-sim = "dssat_sim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
