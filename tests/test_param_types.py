@@ -1,5 +1,8 @@
+from datetime import date
+
 import pytest
-from scenario_generator import FloatParam, IntParam
+
+from scenario_generator import DateParam, FloatParam, IntParam
 
 
 def test_float_at_min():
@@ -47,3 +50,25 @@ def test_int_uniform_buckets():
     for u in [0.0, 0.25, 0.5, 0.75, 0.99]:
         seen.add(p.map(u)["pop"])
     assert seen == {1, 2, 3, 4}
+
+
+def test_date_at_min():
+    p = DateParam("pdate", min=date(2021, 4, 15), max=date(2021, 7, 31))
+    assert p.map(0.0) == {"pdate": date(2021, 4, 15)}
+
+
+def test_date_at_max():
+    p = DateParam("pdate", min=date(2021, 4, 15), max=date(2021, 7, 31))
+    assert p.map(1.0) == {"pdate": date(2021, 7, 31)}
+
+
+def test_date_crosses_year_boundary():
+    p = DateParam("pdate", min=date(2020, 12, 20), max=date(2021, 1, 10))
+    result = p.map(0.5)["pdate"]
+    assert date(2020, 12, 20) <= result <= date(2021, 1, 10)
+
+
+def test_date_returns_date_not_datetime():
+    p = DateParam("pdate", min=date(2021, 4, 15), max=date(2021, 7, 31))
+    result = p.map(0.5)["pdate"]
+    assert type(result) is date

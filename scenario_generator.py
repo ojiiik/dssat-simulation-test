@@ -109,3 +109,18 @@ class IntParam:
         if idx >= n_buckets:
             idx = n_buckets - 1
         return {self.name: self.min + idx}
+
+
+from datetime import date, timedelta
+
+
+class DateParam:
+    def __init__(self, name: str, min: date, max: date):
+        self.name = name
+        self.min = min
+        self.max = max
+
+    def map(self, u: float) -> dict[str, Any]:
+        delta_days = (self.max - self.min).days
+        offset = round(delta_days * u)
+        return {self.name: self.min + timedelta(days=offset)}
