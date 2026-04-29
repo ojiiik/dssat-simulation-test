@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from scenario_generator import Config, ConfigError, load_config, validate_config
+from dssat_sim.scenarios import Config, ConfigError, load_config, validate_config
 
 
 def test_load_minimal_config(tmp_path: Path):
